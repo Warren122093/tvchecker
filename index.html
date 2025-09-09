@@ -1,190 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>MPD/M3U8 Checker & Player</title>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <title>M3U8 / MPD ClearKey Checker & Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.11/shaka-player.compiled.js"></script>
-  <link rel="icon" href="https://github.githubassets.com/favicons/favicon-dark.svg" />
+  <!-- Shaka Player -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.15/shaka-player.compiled.js"></script>
 </head>
-<body class="bg-gray-900 min-h-screen flex items-center justify-center">
-  <main class="w-full max-w-xl mx-auto my-12 bg-gray-800 rounded-xl shadow-lg p-8">
-    <div class="flex items-center justify-center mb-6">
-      <!-- Play Icon -->
-      <svg class="w-10 h-10 text-pink-500 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <polygon points="8,5 19,12 8,19" fill="currentColor" />
-      </svg>
-      <h1 class="text-3xl font-bold text-pink-400 tracking-wide">MPD / M3U8 Checker & Player</h1>
-    </div>
-    
-    <form onsubmit="event.preventDefault(); checkAndPlay();">
-      <label for="url-input" class="block text-sm font-semibold mb-1 text-gray-200">
-        <span class="inline-flex items-center">
-          <!-- Link Icon -->
-          <svg class="w-5 h-5 mr-1 text-pink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 010 5.656l-2.828 2.828a4 4 0 01-5.656-5.656l1.414-1.414"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.172 13.828a4 4 0 010-5.656l2.828-2.828a4 4 0 015.656 5.656l-1.414 1.414"/>
-          </svg>
-          Stream URL (MPD or M3U8):
-        </span>
-      </label>
-      <input id="url-input" type="text"
-        class="w-full px-4 py-2 mb-4 rounded-lg bg-gray-700 text-pink-300 placeholder-gray-400 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
-        placeholder="https://.../index.mpd or https://.../playlist.m3u8" autocomplete="off" required>
-
-      <label for="key-input" class="block text-sm font-semibold mb-1 text-gray-200">
-        <span class="inline-flex items-center">
-          <!-- Key Icon -->
-          <svg class="w-5 h-5 mr-1 text-pink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="3" stroke="currentColor"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m0 4v-2m4-4l2 2m-10-2l-2 2" />
-          </svg>
-          Key (hex, for AES-128 or clear key DRM):
-        </span>
-      </label>
-      <input id="key-input" type="text"
-        class="w-full px-4 py-2 mb-3 rounded-lg bg-gray-700 text-pink-300 placeholder-gray-400 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
-        placeholder="0123456789abcdef0123456789abcdef (optional)" autocomplete="off">
-      <div class="text-xs text-gray-400 mb-4 ml-1 flex items-center">
-        <!-- Info Icon -->
-        <svg class="w-4 h-4 mr-1 text-pink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4M12 8h.01" />
-        </svg>
-        For AES-128 HLS, use the 32-character hex key. For Widevine/FairPlay/PlayReady, use extra options below.
+<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-md mx-auto p-6 bg-white/10 backdrop-blur rounded-2xl shadow-2xl border border-white/20">
+    <h2 class="text-xl font-bold text-slate-100 mb-6 text-center tracking-wide">M3U8 / MPD ClearKey Checker &amp; Player</h2>
+    <form id="checkForm" class="space-y-4">
+      <div>
+        <label for="url" class="block text-slate-300 text-sm font-semibold mb-1">Stream URL (M3U8 / MPD):</label>
+        <input type="text" id="url" required placeholder="https://..." class="w-full px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition" autocomplete="off">
       </div>
+      <div id="keyFields">
+        <label for="keyid" class="block text-slate-300 text-sm font-semibold mb-1">Key ID (hex, e.g., 1a2b3c...):</label>
+        <input type="text" id="keyid" placeholder="Key ID" class="w-full px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition" autocomplete="off">
 
-      <label for="extra-input" class="block text-sm font-semibold mb-1 text-gray-200">
-        <span class="inline-flex items-center">
-          <!-- Code Icon -->
-          <svg class="w-5 h-5 mr-1 text-pink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M16 17l5-5m0 0l-5-5m5 5H9m-6 5v-1a2 2 0 012-2h1m10 4v1a2 2 0 01-2 2h-1m-6-6V7a2 2 0 012-2h1m-4 10h6" />
-          </svg>
-          Extra Options (JSON: headers, licenseUrl, DRM keys, etc):
-        </span>
-      </label>
-      <textarea id="extra-input" rows="3"
-        class="w-full px-4 py-2 rounded-lg bg-gray-700 text-pink-300 placeholder-gray-400 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400 mb-2"
-        placeholder='{"headers": {"Authorization": "Bearer ..."}, "licenseUrl": "...", "drm": {"clearKeys": {...}}}'></textarea>
-      <div class="text-xs text-gray-400 mb-6 ml-1 flex items-center">
-        <!-- Info Icon -->
-        <svg class="w-4 h-4 mr-1 text-pink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4M12 8h.01" />
-        </svg>
-        Use this for custom headers, token, DRM license, or advanced Shaka Player options.
+        <label for="key" class="block text-slate-300 text-sm font-semibold mt-2 mb-1">Key (hex, e.g., 4d5e6f...):</label>
+        <input type="text" id="key" placeholder="Key" class="w-full px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition" autocomplete="off">
       </div>
-
-      <button type="submit"
-        class="w-full py-3 mb-4 font-semibold rounded-lg bg-pink-500 hover:bg-pink-600 text-white transition-colors duration-150 shadow-lg focus:outline-none focus:ring-2 focus:ring-pink-400 flex items-center justify-center">
-        <!-- Play Circle Icon -->
-        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" stroke="currentColor"/>
-          <polygon points="10,8 16,12 10,16 10,8" fill="currentColor" />
-        </svg>
-        Check & Play
-      </button>
+      <button type="submit" class="w-full py-3 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-900 font-bold text-lg shadow-lg hover:from-cyan-300 hover:to-blue-400 transition">Check &amp; Play</button>
     </form>
-    <div id="status" class="min-h-[28px] mb-4 text-center font-semibold"></div>
-    <div class="rounded-lg bg-gray-900 border border-gray-700 p-2">
-      <video id="video" controls autoplay class="w-full rounded-md bg-black"></video>
-    </div>
-    <div class="text-center text-xs text-gray-500 mt-8 flex items-center justify-center gap-2">
-      <!-- Lightning Bolt Icon -->
-      <svg class="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor"/>
-      </svg>
-      Powered by Shaka Player
-    </div>
-  </main>
+    <div id="message" class="mt-4 min-h-[32px] text-center text-base"></div>
+    <video id="video" controls poster="" style="display:none" class="mt-6 w-full rounded-lg bg-black shadow-lg aspect-video"></video>
+  </div>
   <script>
-    function showStatus(msg, ok = true) {
-      const s = document.getElementById('status');
-      s.textContent = msg;
-      s.className = ok
-        ? "min-h-[28px] mb-4 text-center font-semibold text-pink-400"
-        : "min-h-[28px] mb-4 text-center font-semibold text-red-400";
+    const urlInput = document.getElementById('url');
+    const keyFields = document.getElementById('keyFields');
+    const keyidInput = document.getElementById('keyid');
+    const keyInput = document.getElementById('key');
+    const message = document.getElementById('message');
+    const video = document.getElementById('video');
+    let player; // Shaka player instance
+
+    function updateKeyFields() {
+      const url = urlInput.value.trim().toLowerCase();
+      if (url.endsWith('.m3u8')) {
+        keyFields.style.display = "none";
+        keyidInput.required = false;
+        keyInput.required = false;
+      } else {
+        keyFields.style.display = "";
+        keyidInput.required = true;
+        keyInput.required = true;
+      }
     }
-    async function checkAndPlay() {
-      const url = document.getElementById('url-input').value.trim();
-      const key = document.getElementById('key-input').value.trim();
-      const extraRaw = document.getElementById('extra-input').value.trim();
-      let extraOptions = {};
-      if (!url) return showStatus('Please enter a stream URL.', false);
+    urlInput.addEventListener('input', updateKeyFields);
+    window.addEventListener('DOMContentLoaded', updateKeyFields);
 
-      // Clean up previous
-      const video = document.getElementById('video');
-      video.pause();
-      video.src = '';
-      showStatus('Loading stream...', true);
+    async function checkStream(url) {
+      try {
+        const r = await fetch(url, { method: 'HEAD' });
+        return r.ok;
+      } catch (e) {
+        return false;
+      }
+    }
+    function hexToBase64(hex) {
+      return btoa(hex.match(/\w{2}/g).map(a => String.fromCharCode(parseInt(a, 16))).join(''));
+    }
 
-      // Parse extra options
-      if (extraRaw.length) {
-        try {
-          extraOptions = JSON.parse(extraRaw);
-        } catch (e) {
-          return showStatus('Extra options JSON invalid: ' + e, false);
-        }
+    function showMsg(msg, color) {
+      message.textContent = msg;
+      message.className = "mt-4 min-h-[32px] text-center text-base font-semibold " + color;
+    }
+
+    function destroyPlayer() {
+      if (player) {
+        player.destroy();
+        player = null;
+      }
+      video.removeAttribute('src');
+      video.load();
+      video.style.display = "none";
+    }
+
+    // Show video only when really playing
+    function showVideo() {
+      video.style.display = 'block';
+    }
+
+    document.getElementById('checkForm').onsubmit = async function(e) {
+      e.preventDefault();
+      destroyPlayer();
+
+      const url = urlInput.value.trim();
+      const isM3U8 = url.toLowerCase().endsWith('.m3u8');
+      const isMPD = url.toLowerCase().endsWith('.mpd');
+      const keyid = keyidInput.value.replace(/[^a-fA-F0-9]/g, '');
+      const key = keyInput.value.replace(/[^a-fA-F0-9]/g, '');
+
+      showMsg("", "");
+
+      if (!/^https?:\/\/.+/.test(url) || (!isM3U8 && !isMPD)) {
+        showMsg("Invalid stream URL. Must be .m3u8 or .mpd.", "text-red-400");
+        return;
+      }
+      if (isMPD && (keyid.length !== 32 && keyid.length !== 16)) {
+        showMsg("Key ID must be 16 or 32 hex characters.", "text-red-400");
+        return;
+      }
+      if (isMPD && (key.length !== 32 && key.length !== 16)) {
+        showMsg("Key must be 16 or 32 hex characters.", "text-red-400");
+        return;
       }
 
-      // Remove previous player if any
-      if (window.shakaPlayer) {
-        window.shakaPlayer.destroy();
-        window.shakaPlayer = null;
+      showMsg("Checking stream URL...", "text-blue-300");
+      const valid = await checkStream(url);
+      if (!valid) {
+        showMsg("Failed to access stream URL (CORS, geo, or offline?).", "text-red-400");
+        return;
       }
 
-      if (!shaka.Player.isBrowserSupported()) {
-        return showStatus('Browser not supported by Shaka Player.', false);
-      }
+      showMsg("Stream URL is valid. Initializing player...", "text-green-400");
 
-      const player = new shaka.Player(video);
-      window.shakaPlayer = player;
+      player = new shaka.Player(video);
 
-      // Handle Clear Key DRM via extra options or key field
-      if (key.length === 32) {
-        showStatus('Please use the "Extra Options" field for Clear Key. See instructions below.', false);
-      }
-      if (extraOptions.drm && extraOptions.drm.clearKeys) {
+      // Shaka error listener
+      player.addEventListener('error', function(event) {
+        showMsg("Shaka Error: " + (event.detail ? event.detail.code : JSON.stringify(event)), "text-red-400");
+        destroyPlayer();
+      });
+
+      // Configure DRM for DASH, not for HLS
+      if (isMPD) {
         player.configure({
           drm: {
-            clearKeys: extraOptions.drm.clearKeys
+            clearKeys: {
+              [hexToBase64(keyid)]: hexToBase64(key)
+            }
           }
         });
+      } else {
+        player.configure({drm: {clearKeys: {}}});
       }
-
-      // Handle generic DRM servers/license URL
-      if (extraOptions.licenseUrl || (extraOptions.drm && extraOptions.drm.servers)) {
-        let drmConfig = {};
-        if (extraOptions.licenseUrl) {
-          drmConfig.servers = {
-            'com.widevine.alpha': extraOptions.licenseUrl,
-            'com.microsoft.playready': extraOptions.licenseUrl,
-            'com.apple.fps.1_0': extraOptions.licenseUrl
-          };
-        }
-        if (extraOptions.drm) {
-          drmConfig = { ...drmConfig, ...extraOptions.drm };
-        }
-        player.configure({ drm: drmConfig });
-      }
-      if (extraOptions.headers) {
-        player.getNetworkingEngine().registerRequestFilter((type, request) => {
-          Object.entries(extraOptions.headers).forEach(([k, v]) => {
-            request.headers[k] = v;
-          });
-        });
-      }
-
-      player.addEventListener('error', (e) => {
-        showStatus('Error: ' + (e.detail && e.detail.message || e), false);
-      });
 
       try {
         await player.load(url);
-        showStatus('Stream loaded successfully!');
-      } catch (e) {
-        showStatus('Error: ' + (e.message || e), false);
+        showMsg("Playing stream!", "text-green-400");
+        showVideo();
+        // Try to play automatically on success
+        try { video.play(); } catch { /* ignore */ }
+      } catch (err) {
+        showMsg("Player error: " + (err && err.message ? err.message : err), "text-red-400");
+        destroyPlayer();
       }
     }
   </script>
